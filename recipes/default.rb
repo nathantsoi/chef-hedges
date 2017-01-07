@@ -30,7 +30,9 @@ ruby_block 'build_firewall_config' do
       Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
       (rule['hostnames']||[]).each do |hostname|
         cmd = "host #{hostname} |cut -f4 -d' '|head -n1"
+        print "host cmd: '#{cmd}'\n"
         host_ip = shell_out(cmd).stdout.strip
+        print "host_ip: '#{host_ip}'\n\n"
         # TODO: notify instead of fail?
         raise "unknown host '#{hostname}'" unless host_ip.strip.length > 0
         ports =
