@@ -36,8 +36,10 @@ node['hedges']['rules'] = [
   {
     # defaults to input
     direction: '[INPUT|OUTPUT]',
-    # hostname to which we will apply the rule
+    # [hostname|range|ip] to which we will apply the rule
     hostnames: ['(e.g. someserver-01.mydomain.com)'],
+    ranges: ['e.g. (192.168.1.1-192.168.1.10)'],
+    ips: ['e.g. (192.168.1.1-192.168.1.10)'],
     # specify:
     #  a port range in the format '443:445' to open ports 443 to 445 inclusive
     #  or a list of descrete ports in the format '80,443' to open ports 80 and 443

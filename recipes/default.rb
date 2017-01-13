@@ -28,6 +28,9 @@ ruby_block 'build_firewall_config' do
       direction = (rule['direction']||'INPUT').strip.upcase
       raise "unknown direction '#{direction}'" unless %w/INPUT OUTPUT/.include?(direction)
       Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
+
+      # aggregate all host string types
+      host_strings = []
       (rule['hostnames']||[]).each do |hostname|
         cmd = "host #{hostname} |cut -f4 -d' '|head -n1"
         print "host cmd: '#{cmd}'\n"
@@ -35,19 +38,31 @@ ruby_block 'build_firewall_config' do
         print "host_ip: '#{host_ip}'\n\n"
         # TODO: notify instead of fail?
         raise "unknown host '#{hostname}'" unless host_ip.strip.length > 0
-        ports =
-          if rule['ports'].strip == '' || rule['ports'] == nil
-            ''
-          # non-continuous port list
-          elsif rule['ports'] =~ /,/
-            "-m multiport --dports #{rule['ports']}"
-          # single port or continuous port range
-          else
-            "--dport #{rule['ports']}"
-          end
-        proto = (rule['proto']||'tcp').strip.downcase
-        raise "unknown protocol '#{proto}'" unless %w/udp tcp/.include?(proto)
-        rules << "-I INPUT -p #{proto} -s #{host_ip} #{ports} -j ACCEPT"
+        host_strings << "-s #{host_ip}"
+      end
+      (rule['ips']||[]).each do |ip|
+        host_strings << "-s #{ip}"
+      end
+      (rule['ranges']||[]).each do |range|
+        host_strings << "-m iprange --src-range #{range}"
+      end
+
+      ports =
+        if rule['ports'].strip == '' || rule['ports'] == nil
+          ''
+        # non-continuous port list
+        elsif rule['ports'] =~ /,/
+          "-m multiport --dports #{rule['ports']}"
+        # single port or continuous port range
+        else
+          "--dport #{rule['ports']}"
+        end
+      proto = (rule['proto']||'tcp').strip.downcase
+      raise "unknown protocol '#{proto}'" unless %w/udp tcp/.include?(proto)
+
+      # buid our list of rules
+      host_strings.each do |host_string|
+        rules << "-I INPUT -p #{proto} #{host_string} #{ports} -j ACCEPT"
       end
     end
 
