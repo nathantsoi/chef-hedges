@@ -31,20 +31,24 @@ ruby_block 'build_firewall_config' do
 
       # aggregate all host string types
       host_strings = []
-      (rule['hostnames']||[]).each do |hostname|
-        cmd = "host #{hostname} |cut -f4 -d' '|head -n1"
-        print "host cmd: '#{cmd}'\n"
-        host_ip = shell_out(cmd).stdout.strip
-        print "host_ip: '#{host_ip}'\n\n"
-        # TODO: notify instead of fail?
-        raise "unknown host '#{hostname}'" unless host_ip.strip.length > 0
-        host_strings << "-s #{host_ip}"
-      end
-      (rule['ips']||[]).each do |ip|
-        host_strings << "-s #{ip}"
-      end
-      (rule['ranges']||[]).each do |range|
-        host_strings << "-m iprange --src-range #{range}"
+      if rule['any']
+        host_strings << ""
+      else
+        (rule['hostnames']||[]).each do |hostname|
+          cmd = "host #{hostname} |cut -f4 -d' '|head -n1"
+          print "host cmd: '#{cmd}'\n"
+          host_ip = shell_out(cmd).stdout.strip
+          print "host_ip: '#{host_ip}'\n\n"
+          # TODO: notify instead of fail?
+          raise "unknown host '#{hostname}'" unless host_ip.strip.length > 0
+          host_strings << "-s #{host_ip}"
+        end
+        (rule['ips']||[]).each do |ip|
+          host_strings << "-s #{ip}"
+        end
+        (rule['ranges']||[]).each do |range|
+          host_strings << "-m iprange --src-range #{range}"
+        end
       end
 
       ports =
